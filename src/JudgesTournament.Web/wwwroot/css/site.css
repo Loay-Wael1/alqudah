@@ -1,11 +1,20 @@
 /* بطولة القضاة 2026 - Main Stylesheet */
+/* Color palette derived from the tournament logo: dark green-black + gold */
 
-/* ====== Base ====== */
+/* ====== Design Tokens ====== */
 :root {
-    --primary-green: #1B5E20;
-    --primary-green-light: #2E7D32;
-    --gold: #FFD700;
-    --gold-dark: #FFC107;
+    --brand-dark: #141e14;
+    --brand-green: #1f3320;
+    --brand-green-mid: #2a4a2e;
+    --brand-gold: #C9A84C;
+    --brand-gold-light: #D4B85A;
+    --brand-gold-dark: #B8963E;
+    --text-body: #333;
+    --text-muted: #6c757d;
+    --bg-light: #f8f9fa;
+    --bg-section: #f1f3f1;
+    --card-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+    --radius: 12px;
 }
 
 * {
@@ -13,132 +22,283 @@
 }
 
 body {
-    background-color: #fafafa;
-    color: #333;
+    background-color: #fff;
+    color: var(--text-body);
+    line-height: 1.8;
+}
+
+/* ====== Typography ====== */
+.fw-900 { font-weight: 900 !important; }
+
+.section-title {
+    font-weight: 800;
+    font-size: 1.75rem;
+    color: var(--brand-green);
+    margin-bottom: 0.5rem;
+}
+
+.section-divider {
+    width: 50px;
+    height: 3px;
+    background: var(--brand-gold);
+    border-radius: 2px;
+    margin-bottom: 2rem;
+}
+
+.section-divider-center {
+    margin-left: auto;
+    margin-right: auto;
 }
 
 /* ====== Gradient Backgrounds ====== */
-.bg-primary-gradient {
-    background: linear-gradient(135deg, var(--primary-green) 0%, var(--primary-green-light) 50%, #388E3C 100%) !important;
+.bg-brand-gradient {
+    background: linear-gradient(135deg, var(--brand-dark) 0%, var(--brand-green) 60%, var(--brand-green-mid) 100%) !important;
+}
+
+.bg-brand-gold-gradient {
+    background: linear-gradient(135deg, var(--brand-gold-dark) 0%, var(--brand-gold) 100%) !important;
+}
+
+/* ====== Buttons ====== */
+.btn-brand-gold {
+    background-color: var(--brand-gold);
+    border-color: var(--brand-gold);
+    color: var(--brand-dark);
+    font-weight: 700;
+    border-radius: 8px;
+    transition: background-color 0.2s ease, transform 0.15s ease;
+}
+
+.btn-brand-gold:hover {
+    background-color: var(--brand-gold-light);
+    border-color: var(--brand-gold-light);
+    color: var(--brand-dark);
+    transform: translateY(-1px);
+}
+
+.btn-brand-outline {
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    color: #fff;
+    font-weight: 600;
+    border-radius: 8px;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.btn-brand-outline:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-color: #fff;
+    color: #fff;
+}
+
+.btn-brand-green {
+    background-color: var(--brand-green);
+    border-color: var(--brand-green);
+    color: #fff;
+    font-weight: 700;
+    border-radius: 8px;
+    transition: background-color 0.2s ease;
+}
+
+.btn-brand-green:hover {
+    background-color: var(--brand-green-mid);
+    border-color: var(--brand-green-mid);
+    color: #fff;
 }
 
 /* ====== Hero Section ====== */
 .hero-section {
-    background: linear-gradient(135deg, #0d3b0f 0%, var(--primary-green) 50%, #1a472a 100%);
-    min-height: 70vh;
-    display: flex;
-    align-items: center;
+    position: relative;
+    overflow: hidden;
+    background: var(--brand-dark);
 }
 
-.hero-overlay {
+.hero-bg-image {
     position: absolute;
     inset: 0;
-    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,215,0,0.05)" stroke-width="2"/></svg>') repeat;
-    background-size: 80px;
+    background-size: cover;
+    background-position: center;
+    opacity: 0.35;
 }
 
-.min-vh-75 {
-    min-height: 55vh;
+.hero-bg-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg,
+        rgba(20, 30, 20, 0.7) 0%,
+        rgba(20, 30, 20, 0.85) 60%,
+        var(--brand-dark) 100%);
 }
 
-.fw-900 {
-    font-weight: 900 !important;
+.hero-content {
+    position: relative;
+    z-index: 2;
+}
+
+.hero-logo {
+    width: 140px;
+    height: auto;
+    filter: drop-shadow(0 4px 20px rgba(201, 168, 76, 0.3));
+}
+
+.hero-title {
+    font-weight: 900;
+    font-size: 2.8rem;
+    color: #fff;
+    letter-spacing: -0.5px;
+}
+
+.hero-title .gold {
+    color: var(--brand-gold);
+}
+
+.hero-subtitle {
+    color: rgba(255, 255, 255, 0.75);
+    font-size: 1.1rem;
+    font-weight: 400;
+}
+
+.hero-text {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.95rem;
+    max-width: 600px;
 }
 
 /* ====== Cards ====== */
-.card-hover {
+.info-card {
+    background: #fff;
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    border-radius: var(--radius);
+    box-shadow: var(--card-shadow);
     transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.card-hover:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1) !important;
+.info-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.1);
 }
 
-/* ====== Icon Circle ====== */
-.icon-circle {
-    width: 70px;
-    height: 70px;
-    border-radius: 50%;
+.card-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
+    font-size: 1.5rem;
 }
 
-/* ====== Divider ====== */
-.divider {
-    width: 60px;
-    height: 4px;
-    background: var(--gold);
-    border-radius: 2px;
-    margin-top: 12px;
+.card-icon-gold {
+    background: linear-gradient(135deg, rgba(201, 168, 76, 0.12), rgba(201, 168, 76, 0.05));
+    color: var(--brand-gold-dark);
 }
 
-/* ====== Hover Lift Effect ====== */
-.hover-lift {
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+.card-icon-green {
+    background: linear-gradient(135deg, rgba(31, 51, 32, 0.1), rgba(31, 51, 32, 0.04));
+    color: var(--brand-green);
 }
 
-.hover-lift:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2) !important;
+/* ====== Step Card ====== */
+.step-number {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--brand-green);
+    color: var(--brand-gold);
+    font-weight: 800;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
 }
 
-/* ====== Trophy Animation ====== */
-.trophy-icon-container {
-    animation: float 4s ease-in-out infinite;
+/* ====== Terms List ====== */
+.term-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.875rem 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 }
 
-@keyframes float {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-15px); }
+.term-item:last-child {
+    border-bottom: none;
 }
 
-/* ====== Success Icon Animation ====== */
-.success-icon {
-    animation: scaleIn 0.5s ease-out;
+.term-check {
+    color: var(--brand-green);
+    font-size: 1.1rem;
+    margin-top: 4px;
+    flex-shrink: 0;
 }
 
-@keyframes scaleIn {
-    from { transform: scale(0); opacity: 0; }
-    to { transform: scale(1); opacity: 1; }
+/* ====== CTA Section ====== */
+.cta-section {
+    background: linear-gradient(135deg, var(--brand-dark) 0%, var(--brand-green) 100%);
+    position: relative;
+    overflow: hidden;
+}
+
+.cta-section::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle at 70% 50%, rgba(201, 168, 76, 0.06) 0%, transparent 50%);
+    pointer-events: none;
+}
+
+/* ====== Navbar ====== */
+.navbar-brand-logo {
+    width: 38px;
+    height: auto;
 }
 
 /* ====== Form Styling ====== */
 .form-control:focus,
 .form-select:focus {
-    border-color: var(--primary-green);
-    box-shadow: 0 0 0 0.2rem rgba(27, 94, 32, 0.15);
+    border-color: var(--brand-green);
+    box-shadow: 0 0 0 0.2rem rgba(31, 51, 32, 0.12);
 }
 
 .form-check-input:checked {
-    background-color: var(--primary-green);
-    border-color: var(--primary-green);
+    background-color: var(--brand-green);
+    border-color: var(--brand-green);
 }
 
-/* ====== Buttons ====== */
+/* ====== Bootstrap Overrides ====== */
 .btn-primary {
-    background-color: var(--primary-green) !important;
-    border-color: var(--primary-green) !important;
+    background-color: var(--brand-green) !important;
+    border-color: var(--brand-green) !important;
 }
 
 .btn-primary:hover {
-    background-color: var(--primary-green-light) !important;
-    border-color: var(--primary-green-light) !important;
+    background-color: var(--brand-green-mid) !important;
+    border-color: var(--brand-green-mid) !important;
 }
 
 .btn-outline-primary {
-    color: var(--primary-green) !important;
-    border-color: var(--primary-green) !important;
+    color: var(--brand-green) !important;
+    border-color: var(--brand-green) !important;
 }
 
 .btn-outline-primary:hover {
-    background-color: var(--primary-green) !important;
-    color: white !important;
+    background-color: var(--brand-green) !important;
+    color: #fff !important;
 }
 
 .text-primary {
-    color: var(--primary-green) !important;
+    color: var(--brand-green) !important;
+}
+
+.text-brand-gold {
+    color: var(--brand-gold) !important;
+}
+
+.bg-primary-gradient {
+    background: linear-gradient(135deg, var(--brand-dark) 0%, var(--brand-green) 60%, var(--brand-green-mid) 100%) !important;
 }
 
 /* ====== Validation ====== */
@@ -149,6 +309,16 @@ body {
 
 .input-validation-error {
     border-color: #dc3545 !important;
+}
+
+/* ====== Success Animation ====== */
+.success-icon {
+    animation: scaleIn 0.5s ease-out;
+}
+
+@keyframes scaleIn {
+    from { transform: scale(0); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
 }
 
 /* ====== Footer ====== */
@@ -175,17 +345,20 @@ body {
 
 /* ====== Responsive ====== */
 @media (max-width: 768px) {
-    .hero-section {
-        min-height: auto;
-        padding: 2rem 0;
+    .hero-title {
+        font-size: 2rem;
     }
 
-    .display-3 {
-        font-size: 2.2rem !important;
+    .hero-logo {
+        width: 100px;
     }
 
-    .trophy-icon-container i {
-        font-size: 6rem !important;
+    .hero-subtitle {
+        font-size: 1rem;
+    }
+
+    .section-title {
+        font-size: 1.4rem;
     }
 
     .table-responsive {
@@ -193,9 +366,15 @@ body {
     }
 }
 
+@media (max-width: 576px) {
+    .hero-title {
+        font-size: 1.7rem;
+    }
+}
+
 /* ====== Print ====== */
 @media print {
-    .navbar, footer, .btn {
+    .navbar, footer, .btn, .cta-section {
         display: none !important;
     }
 }
