@@ -37,17 +37,20 @@ public class AccountController : Controller
 
         if (result.Succeeded)
         {
-            _logger.LogInformation("Admin logged in: {Email}", model.Email);
+            _logger.LogInformation("Admin login successful: {Email}", model.Email);
             return RedirectToLocal(returnUrl);
         }
 
         if (result.IsLockedOut)
         {
-            _logger.LogWarning("Admin account locked out: {Email}", model.Email);
+            _logger.LogWarning("Admin account locked out after failed attempts: {Email}", model.Email);
             ModelState.AddModelError("", "الحساب مقفل مؤقتًا بسبب محاولات تسجيل دخول فاشلة متعددة.");
             return View(model);
         }
 
+        // Failed login attempt
+        _logger.LogWarning("Failed admin login attempt for: {Email} from IP {IP}",
+            model.Email, HttpContext.Connection.RemoteIpAddress);
         ModelState.AddModelError("", "البريد الإلكتروني أو كلمة المرور غير صحيحة.");
         return View(model);
     }
@@ -56,7 +59,9 @@ public class AccountController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Logout()
     {
+        var email = User.Identity?.Name;
         await _signInManager.SignOutAsync();
+        _logger.LogInformation("Admin logged out: {Email}", email);
         return RedirectToAction("Index", "Home", new { area = "" });
     }
 

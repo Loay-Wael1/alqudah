@@ -12,11 +12,16 @@ namespace JudgesTournament.Web.Areas.Admin.Controllers;
 public class RegistrationsController : Controller
 {
     private readonly IRegistrationService _registrationService;
+    private readonly IFileStorageService _fileStorageService;
     private readonly ILogger<RegistrationsController> _logger;
 
-    public RegistrationsController(IRegistrationService registrationService, ILogger<RegistrationsController> logger)
+    public RegistrationsController(
+        IRegistrationService registrationService,
+        IFileStorageService fileStorageService,
+        ILogger<RegistrationsController> logger)
     {
         _registrationService = registrationService;
+        _fileStorageService = fileStorageService;
         _logger = logger;
     }
 
@@ -38,7 +43,10 @@ public class RegistrationsController : Controller
     {
         var registration = await _registrationService.GetByIdAsync(id, cancellationToken);
         if (registration is null)
+        {
+            _logger.LogWarning("Admin tried to access non-existent registration {Id}", id);
             return NotFound();
+        }
 
         var model = new RegistrationDetailsViewModel
         {
@@ -82,13 +90,19 @@ public class RegistrationsController : Controller
     public IActionResult ViewReceipt(string path)
     {
         if (string.IsNullOrEmpty(path))
+        {
+            _logger.LogWarning("Receipt view attempt with empty path by admin {Admin}", User.Identity?.Name);
             return NotFound();
+        }
 
-        var fileService = HttpContext.RequestServices.GetRequiredService<IFileStorageService>();
-        var fullPath = fileService.GetFullPath(path);
+        var fullPath = _fileStorageService.GetFullPath(path);
 
         if (!System.IO.File.Exists(fullPath))
+        {
+            _logger.LogWarning("Receipt file not found: {FileName} requested by admin {Admin}",
+                Path.GetFileName(path), User.Identity?.Name);
             return NotFound();
+        }
 
         var extension = Path.GetExtension(fullPath).ToLowerInvariant();
         var contentType = extension switch

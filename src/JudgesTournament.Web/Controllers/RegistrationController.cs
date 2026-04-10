@@ -49,6 +49,8 @@ public class RegistrationController : Controller
 
         if (!_registrationOptions.IsOpen)
         {
+            _logger.LogWarning("Registration attempt while registration is closed from IP {IP}",
+                HttpContext.Connection.RemoteIpAddress);
             ModelState.AddModelError("", "التسجيل مغلق حاليًا.");
             return View(model);
         }
@@ -108,9 +110,10 @@ public class RegistrationController : Controller
             if (!response.Success)
             {
                 // Clean up uploaded file on failure
-                if (receiptPath is not null)
-                    _fileStorageService.DeleteReceipt(receiptPath);
+                _fileStorageService.DeleteReceipt(receiptPath);
 
+                _logger.LogInformation("Registration rejected for team {Team}: {Reason}",
+                    model.TeamName, response.ErrorMessage);
                 ModelState.AddModelError("", response.ErrorMessage!);
                 return View(model);
             }
@@ -120,6 +123,7 @@ public class RegistrationController : Controller
         catch (InvalidOperationException ex)
         {
             // File validation errors from FileStorageService
+            _logger.LogWarning("File validation failed during registration: {Message}", ex.Message);
             ModelState.AddModelError(nameof(model.ReceiptImage), ex.Message);
             return View(model);
         }
@@ -127,9 +131,15 @@ public class RegistrationController : Controller
         {
             // Clean up uploaded file on unexpected error
             if (receiptPath is not null)
-                _fileStorageService.DeleteReceipt(receiptPath);
+            {
+                try { _fileStorageService.DeleteReceipt(receiptPath); }
+                catch (Exception cleanupEx)
+                {
+                    _logger.LogWarning(cleanupEx, "Failed to cleanup receipt file after error");
+                }
+            }
 
-            _logger.LogError(ex, "Error during registration");
+            _logger.LogError(ex, "Unexpected error during registration for team {Team}", model.TeamName);
             ModelState.AddModelError("", "حدث خطأ أثناء التسجيل. يرجى المحاولة مرة أخرى.");
             return View(model);
         }

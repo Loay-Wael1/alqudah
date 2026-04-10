@@ -4,6 +4,7 @@ using JudgesTournament.Application.Interfaces;
 using JudgesTournament.Domain.Entities;
 using JudgesTournament.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Logging;
 
 namespace JudgesTournament.Application.Services;
@@ -29,14 +30,20 @@ public class RegistrationService : IRegistrationService
             .AnyAsync(r => r.PhoneNumber == request.PhoneNumber, cancellationToken);
 
         if (phoneExists)
+        {
+            _logger.LogInformation("Duplicate phone registration attempt: {Phone}", request.PhoneNumber);
             return RegistrationResponse.Fail("رقم الهاتف مسجل بالفعل. لا يمكن التسجيل بنفس الرقم أكثر من مرة.");
+        }
 
         var teamExists = await _db.TeamRegistrations
             .AsNoTracking()
             .AnyAsync(r => r.NormalizedTeamName == normalizedName && r.Governorate == request.Governorate, cancellationToken);
 
         if (teamExists)
+        {
+            _logger.LogInformation("Duplicate team registration attempt: {Team} in {Gov}", request.TeamName, request.Governorate);
             return RegistrationResponse.Fail("هذا الفريق مسجل بالفعل في نفس المحافظة.");
+        }
 
         var entity = new TeamRegistration
         {
@@ -59,8 +66,12 @@ public class RegistrationService : IRegistrationService
             CreatedAtUtc = DateTime.UtcNow
         };
 
+        // Use transaction to ensure entity + reference number are saved atomically
+        IDbContextTransaction? transaction = null;
         try
         {
+            transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
+
             _db.TeamRegistrations.Add(entity);
             await _db.SaveChangesAsync(cancellationToken);
 
@@ -68,22 +79,33 @@ public class RegistrationService : IRegistrationService
             entity.ReferenceNumber = $"QJ-2026-{entity.Id:D6}";
             await _db.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("Registration created: {ReferenceNumber} for team {TeamName}",
-                entity.ReferenceNumber, entity.TeamName);
+            await transaction.CommitAsync(cancellationToken);
+
+            _logger.LogInformation("Registration created: {Ref} for team {Team} from {Gov}",
+                entity.ReferenceNumber, entity.TeamName, entity.Governorate);
 
             return RegistrationResponse.Ok(entity.ReferenceNumber);
         }
         catch (DbUpdateException ex)
         {
+            if (transaction is not null)
+                await transaction.RollbackAsync(cancellationToken);
+
             var friendlyMessage = DuplicateExceptionHandler.GetFriendlyMessage(ex);
             if (friendlyMessage is not null)
             {
-                _logger.LogWarning("Duplicate registration attempt caught at DB level: {Message}", friendlyMessage);
+                _logger.LogWarning("Duplicate registration caught at DB level for team {Team}: {Msg}",
+                    request.TeamName, friendlyMessage);
                 return RegistrationResponse.Fail(friendlyMessage);
             }
 
-            _logger.LogError(ex, "Database error during registration creation");
+            _logger.LogError(ex, "Database error during registration for team {Team}", request.TeamName);
             throw;
+        }
+        finally
+        {
+            if (transaction is not null)
+                await transaction.DisposeAsync();
         }
     }
 
@@ -201,10 +223,13 @@ public class RegistrationService : IRegistrationService
             .FirstOrDefaultAsync(r => r.Id == request.RegistrationId, cancellationToken);
 
         if (registration is null)
+        {
+            _logger.LogWarning("Status update attempted on non-existent registration {Id}", request.RegistrationId);
             return (false, "الطلب غير موجود.");
+        }
 
         // Set the original RowVersion for concurrency check
-        _db.TeamRegistrations.Entry(registration).Property(r => r.RowVersion).OriginalValue = request.RowVersion;
+        _db.Entry(registration).Property(r => r.RowVersion).OriginalValue = request.RowVersion;
 
         var oldStatus = registration.Status;
         registration.Status = request.NewStatus;
@@ -226,13 +251,14 @@ public class RegistrationService : IRegistrationService
         try
         {
             await _db.SaveChangesAsync(cancellationToken);
-            _logger.LogInformation("Registration {Id} status changed from {Old} to {New} by {Admin}",
-                registration.Id, oldStatus, request.NewStatus, request.AdminUserId);
+            _logger.LogInformation("Registration {Id} ({Ref}) status: {Old} → {New} by admin {Admin}",
+                registration.Id, registration.ReferenceNumber, oldStatus, request.NewStatus, request.AdminUserId);
             return (true, null);
         }
         catch (DbUpdateConcurrencyException)
         {
-            _logger.LogWarning("Concurrency conflict on registration {Id}", registration.Id);
+            _logger.LogWarning("Concurrency conflict on registration {Id} ({Ref}) by admin {Admin}",
+                registration.Id, registration.ReferenceNumber, request.AdminUserId);
             return (false, "تم تعديل هذا الطلب من قبل مستخدم آخر. يرجى إعادة تحميل الصفحة والمحاولة مرة أخرى.");
         }
     }

@@ -11,6 +11,12 @@ builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddApplicationServices();
 builder.Services.AddWebServices(builder.Configuration);
 
+// Limit request body size for file uploads
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.Limits.MaxRequestBodySize = 10 * 1024 * 1024; // 10MB overall limit
+});
+
 var app = builder.Build();
 
 // Database initialization (admin seeding)
@@ -23,8 +29,15 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
+// Status code pages (404, 403, etc.) — must be before routing
+app.UseStatusCodePagesWithReExecute("/Home/StatusCode", "?code={0}");
+
 app.UseHttpsRedirection();
 app.UseStaticFiles();
+
+// Security headers
+app.UseSecurityHeaders();
+
 app.UseRouting();
 app.UseRateLimiter();
 app.UseAuthentication();

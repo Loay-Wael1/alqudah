@@ -9,6 +9,23 @@ public class HomeController : Controller
         return View();
     }
 
+    /// <summary>
+    /// Handles HTTP status code error pages (404, 403, 500).
+    /// </summary>
+    [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
+    [Route("Home/StatusCode")]
+    public new IActionResult StatusCode(int code)
+    {
+        Response.StatusCode = code;
+
+        return code switch
+        {
+            404 => View("NotFound"),
+            403 => View("AccessDenied"),
+            _ => View("Error")
+        };
+    }
+
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
     public IActionResult Error()
     {

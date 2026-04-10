@@ -39,18 +39,25 @@ public static class ServiceCollectionExtensions
             };
         });
 
-        // Cookie authentication paths
+        // Cookie authentication — hardened settings
         services.ConfigureApplicationCookie(options =>
         {
             options.LoginPath = "/Admin/Account/Login";
-            options.AccessDeniedPath = "/Admin/Account/Login";
+            options.AccessDeniedPath = "/Home/StatusCode?code=403";
             options.ExpireTimeSpan = TimeSpan.FromHours(8);
+            options.SlidingExpiration = true;
+            options.Cookie.HttpOnly = true;
+            options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+            options.Cookie.SameSite = SameSiteMode.Strict;
+            options.Cookie.Name = "JT.Auth";
         });
 
         // Antiforgery
         services.AddAntiforgery(options =>
         {
             options.HeaderName = "X-CSRF-TOKEN";
+            options.Cookie.HttpOnly = true;
+            options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
         });
 
         return services;
