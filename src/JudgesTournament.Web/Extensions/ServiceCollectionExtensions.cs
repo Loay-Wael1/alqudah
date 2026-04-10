@@ -7,7 +7,7 @@ namespace JudgesTournament.Web.Extensions;
 
 public static class ServiceCollectionExtensions
 {
-    public static IServiceCollection AddWebServices(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddWebServices(this IServiceCollection services, IConfiguration configuration, IWebHostEnvironment environment)
     {
         // Bind Options
         services.Configure<RegistrationOptions>(configuration.GetSection(RegistrationOptions.SectionName));
@@ -42,6 +42,11 @@ public static class ServiceCollectionExtensions
             };
         });
 
+        // SecurePolicy: Always for production (HTTPS), SameAsRequest for local HTTP dev
+        var cookieSecurePolicy = environment.IsDevelopment()
+            ? CookieSecurePolicy.SameAsRequest
+            : CookieSecurePolicy.Always;
+
         // Cookie authentication — hardened for production
         services.ConfigureApplicationCookie(options =>
         {
@@ -50,7 +55,7 @@ public static class ServiceCollectionExtensions
             options.ExpireTimeSpan = TimeSpan.FromHours(8);
             options.SlidingExpiration = true;
             options.Cookie.HttpOnly = true;
-            options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+            options.Cookie.SecurePolicy = cookieSecurePolicy;
             options.Cookie.SameSite = SameSiteMode.Strict;
             options.Cookie.Name = "JT.Auth";
         });
@@ -60,7 +65,7 @@ public static class ServiceCollectionExtensions
         {
             options.HeaderName = "X-CSRF-TOKEN";
             options.Cookie.HttpOnly = true;
-            options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+            options.Cookie.SecurePolicy = cookieSecurePolicy;
         });
 
         // Health checks

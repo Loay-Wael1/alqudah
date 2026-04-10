@@ -9,7 +9,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllersWithViews();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddApplicationServices();
-builder.Services.AddWebServices(builder.Configuration);
+builder.Services.AddWebServices(builder.Configuration, builder.Environment);
 
 // Limit request body size for file uploads
 builder.WebHost.ConfigureKestrel(options =>
