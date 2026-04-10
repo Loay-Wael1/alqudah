@@ -33,6 +33,10 @@ public class TeamRegistration
     public bool ConfirmedPreliminary { get; set; }
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
 
+    // Admin review tracking
+    public DateTime? ReviewedAtUtc { get; set; }
+    public string? ReviewedByAdminId { get; set; }
+
     // Concurrency
     public byte[] RowVersion { get; set; } = [];
 

@@ -11,6 +11,11 @@ public class FileStorageService : IFileStorageService
     private readonly ILogger<FileStorageService> _logger;
     private readonly string _basePath;
 
+    // Magic bytes for image validation
+    private static readonly byte[] JpegSignature = [0xFF, 0xD8, 0xFF];
+    private static readonly byte[] PngSignature = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
+    private static readonly byte[] WebpSignature = [0x52, 0x49, 0x46, 0x46]; // RIFF
+
     public FileStorageService(IOptions<UploadOptions> options, ILogger<FileStorageService> logger, IWebHostEnvironmentAccessor hostAccessor)
     {
         _options = options.Value;
@@ -42,6 +47,16 @@ public class FileStorageService : IFileStorageService
             throw new InvalidOperationException("نوع الملف غير مسموح. الأنواع المسموحة: " + string.Join(", ", _options.AllowedExtensions));
         }
 
+        // Magic bytes validation — verify file content matches claimed extension
+        if (!await IsValidImageAsync(fileStream, extension))
+        {
+            _logger.LogWarning("File signature mismatch: claimed {Ext}, actual content differs", extension);
+            throw new InvalidOperationException("محتوى الملف لا يتطابق مع نوعه. يرجى رفع صورة صالحة.");
+        }
+
+        // Reset stream position after reading magic bytes
+        fileStream.Position = 0;
+
         // Safe file naming with GUID
         var safeFileName = $"{Guid.NewGuid()}{extension}";
         var relativePath = Path.Combine(_options.ReceiptsPath, safeFileName);
@@ -57,7 +72,7 @@ public class FileStorageService : IFileStorageService
         }
         catch (IOException ex)
         {
-            _logger.LogError(ex, "Failed to save receipt file to disk: {Path}", safeFileName);
+            _logger.LogError(ex, "Failed to save receipt file to disk: {FileName}", safeFileName);
             throw new InvalidOperationException("فشل في حفظ الملف. يرجى المحاولة مرة أخرى.", ex);
         }
     }
@@ -84,6 +99,28 @@ public class FileStorageService : IFileStorageService
         // Extract just the filename to prevent path traversal
         var fileName = Path.GetFileName(relativePath);
         return Path.Combine(_basePath, fileName);
+    }
+
+    /// <summary>
+    /// Validates file content by checking magic bytes match the claimed extension.
+    /// </summary>
+    private static async Task<bool> IsValidImageAsync(Stream stream, string extension)
+    {
+        if (!stream.CanSeek) return true; // Can't validate non-seekable streams, allow through
+
+        stream.Position = 0;
+        var header = new byte[8];
+        var bytesRead = await stream.ReadAsync(header.AsMemory(0, 8));
+
+        if (bytesRead < 3) return false;
+
+        return extension switch
+        {
+            ".jpg" or ".jpeg" => header[0] == JpegSignature[0] && header[1] == JpegSignature[1] && header[2] == JpegSignature[2],
+            ".png" => bytesRead >= 8 && header.AsSpan(0, 8).SequenceEqual(PngSignature),
+            ".webp" => bytesRead >= 4 && header.AsSpan(0, 4).SequenceEqual(WebpSignature),
+            _ => false
+        };
     }
 }
 

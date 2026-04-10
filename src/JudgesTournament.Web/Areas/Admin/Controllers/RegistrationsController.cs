@@ -85,22 +85,30 @@ public class RegistrationsController : Controller
     }
 
     /// <summary>
-    /// Serves receipt images securely from the uploads directory.
+    /// Serves receipt images securely by registration ID — no path exposure.
     /// </summary>
-    public IActionResult ViewReceipt(string path)
+    public async Task<IActionResult> ViewReceipt(int id, CancellationToken cancellationToken)
     {
-        if (string.IsNullOrEmpty(path))
+        var registration = await _registrationService.GetByIdAsync(id, cancellationToken);
+        if (registration is null)
         {
-            _logger.LogWarning("Receipt view attempt with empty path by admin {Admin}", User.Identity?.Name);
+            _logger.LogWarning("Receipt view for non-existent registration {Id} by admin {Admin}",
+                id, User.Identity?.Name);
             return NotFound();
         }
 
-        var fullPath = _fileStorageService.GetFullPath(path);
+        if (string.IsNullOrEmpty(registration.ReceiptImagePath))
+        {
+            _logger.LogWarning("No receipt file for registration {Id}", id);
+            return NotFound();
+        }
+
+        var fullPath = _fileStorageService.GetFullPath(registration.ReceiptImagePath);
 
         if (!System.IO.File.Exists(fullPath))
         {
-            _logger.LogWarning("Receipt file not found: {FileName} requested by admin {Admin}",
-                Path.GetFileName(path), User.Identity?.Name);
+            _logger.LogWarning("Receipt file missing on disk for registration {Id}, admin {Admin}",
+                id, User.Identity?.Name);
             return NotFound();
         }
 

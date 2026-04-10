@@ -21,16 +21,19 @@ public static class ServiceCollectionExtensions
             return new WebHostEnvironmentAccessor(env.ContentRootPath);
         });
 
-        // Rate limiting
+        // Rate limiting — partitioned per IP
         var rateLimitOptions = configuration.GetSection(RateLimitingOptions.SectionName).Get<RateLimitingOptions>() ?? new();
         services.AddRateLimiter(options =>
         {
-            options.AddFixedWindowLimiter("registration", limiterOptions =>
-            {
-                limiterOptions.PermitLimit = rateLimitOptions.PermitLimit;
-                limiterOptions.Window = TimeSpan.FromMinutes(rateLimitOptions.WindowMinutes);
-                limiterOptions.QueueLimit = 0;
-            });
+            options.AddPolicy("registration", context =>
+                RateLimitPartition.GetFixedWindowLimiter(
+                    partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                    factory: _ => new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = rateLimitOptions.PermitLimit,
+                        Window = TimeSpan.FromMinutes(rateLimitOptions.WindowMinutes),
+                        QueueLimit = 0
+                    }));
 
             options.OnRejected = async (context, _) =>
             {
@@ -39,7 +42,7 @@ public static class ServiceCollectionExtensions
             };
         });
 
-        // Cookie authentication — hardened settings
+        // Cookie authentication — hardened for production
         services.ConfigureApplicationCookie(options =>
         {
             options.LoginPath = "/Admin/Account/Login";
@@ -47,7 +50,7 @@ public static class ServiceCollectionExtensions
             options.ExpireTimeSpan = TimeSpan.FromHours(8);
             options.SlidingExpiration = true;
             options.Cookie.HttpOnly = true;
-            options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+            options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
             options.Cookie.SameSite = SameSiteMode.Strict;
             options.Cookie.Name = "JT.Auth";
         });
@@ -57,8 +60,12 @@ public static class ServiceCollectionExtensions
         {
             options.HeaderName = "X-CSRF-TOKEN";
             options.Cookie.HttpOnly = true;
-            options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+            options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
         });
+
+        // Health checks
+        services.AddHealthChecks()
+            .AddDbContextCheck<Infrastructure.Data.ApplicationDbContext>("database");
 
         return services;
     }

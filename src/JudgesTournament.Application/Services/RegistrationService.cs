@@ -1,11 +1,14 @@
 using JudgesTournament.Application.DTOs;
 using JudgesTournament.Application.Helpers;
 using JudgesTournament.Application.Interfaces;
+using JudgesTournament.Application.Options;
+using JudgesTournament.Domain.Constants;
 using JudgesTournament.Domain.Entities;
 using JudgesTournament.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace JudgesTournament.Application.Services;
 
@@ -13,25 +16,48 @@ public class RegistrationService : IRegistrationService
 {
     private readonly IApplicationDbContext _db;
     private readonly ILogger<RegistrationService> _logger;
+    private readonly RegistrationOptions _regOptions;
 
-    public RegistrationService(IApplicationDbContext db, ILogger<RegistrationService> logger)
+    public RegistrationService(IApplicationDbContext db, ILogger<RegistrationService> logger, IOptions<RegistrationOptions> regOptions)
     {
         _db = db;
         _logger = logger;
+        _regOptions = regOptions.Value;
     }
 
     public async Task<RegistrationResponse> CreateAsync(CreateRegistrationRequest request, CancellationToken cancellationToken = default)
     {
-        var normalizedName = TeamNameNormalizer.Normalize(request.TeamName);
+        // === Business validation ===
 
-        // Application-level duplicate pre-check
+        // Governorate must be in the official list
+        if (!Governorates.All.Contains(request.Governorate))
+            return RegistrationResponse.Fail("المحافظة المختارة غير صالحة.");
+
+        // TransferAmount must equal the configured fee
+        if (request.TransferAmount != _regOptions.Fee)
+            return RegistrationResponse.Fail($"قيمة التحويل يجب أن تكون {_regOptions.Fee} جنيه.");
+
+        // TransferDate must not be in the future
+        if (request.TransferDate.Date > DateTime.UtcNow.Date)
+            return RegistrationResponse.Fail("تاريخ التحويل لا يمكن أن يكون في المستقبل.");
+
+        // === Normalize inputs ===
+        var normalizedName = TeamNameNormalizer.Normalize(request.TeamName);
+        var normalizedPhone = PhoneNormalizer.Normalize(request.PhoneNumber);
+        var normalizedWhatsApp = PhoneNormalizer.Normalize(request.WhatsAppNumber);
+        var normalizedTransferFrom = PhoneNormalizer.Normalize(request.TransferFromNumber);
+
+        if (normalizedPhone.Length < 10)
+            return RegistrationResponse.Fail("رقم الهاتف غير صالح.");
+
+        // === Duplicate pre-checks ===
         var phoneExists = await _db.TeamRegistrations
             .AsNoTracking()
-            .AnyAsync(r => r.PhoneNumber == request.PhoneNumber, cancellationToken);
+            .AnyAsync(r => r.PhoneNumber == normalizedPhone, cancellationToken);
 
         if (phoneExists)
         {
-            _logger.LogInformation("Duplicate phone registration attempt: {Phone}", request.PhoneNumber);
+            _logger.LogInformation("Duplicate phone registration attempt: {Phone}", normalizedPhone);
             return RegistrationResponse.Fail("رقم الهاتف مسجل بالفعل. لا يمكن التسجيل بنفس الرقم أكثر من مرة.");
         }
 
@@ -45,6 +71,7 @@ public class RegistrationService : IRegistrationService
             return RegistrationResponse.Fail("هذا الفريق مسجل بالفعل في نفس المحافظة.");
         }
 
+        // === Create entity ===
         var entity = new TeamRegistration
         {
             TeamName = request.TeamName.Trim(),
@@ -53,9 +80,9 @@ public class RegistrationService : IRegistrationService
             PlayersCount = request.PlayersCount,
             UniformColor = request.UniformColor.Trim(),
             ContactPersonName = request.ContactPersonName.Trim(),
-            PhoneNumber = request.PhoneNumber.Trim(),
-            WhatsAppNumber = request.WhatsAppNumber.Trim(),
-            TransferFromNumber = request.TransferFromNumber.Trim(),
+            PhoneNumber = normalizedPhone,
+            WhatsAppNumber = normalizedWhatsApp,
+            TransferFromNumber = normalizedTransferFrom,
             TransferName = request.TransferName.Trim(),
             TransferAmount = request.TransferAmount,
             TransferDate = request.TransferDate,
@@ -232,27 +259,53 @@ public class RegistrationService : IRegistrationService
         _db.Entry(registration).Property(r => r.RowVersion).OriginalValue = request.RowVersion;
 
         var oldStatus = registration.Status;
-        registration.Status = request.NewStatus;
-        registration.AdminNotes = request.AdminNotes;
+        var statusChanged = oldStatus != request.NewStatus;
 
-        // Record status change in audit trail
-        var history = new RegistrationStatusHistory
+        // Validate status transition if status is actually changing
+        if (statusChanged)
         {
-            TeamRegistrationId = registration.Id,
-            OldStatus = oldStatus,
-            NewStatus = request.NewStatus,
-            ChangedByAdminId = request.AdminUserId,
-            ChangedAtUtc = DateTime.UtcNow,
-            Notes = request.AdminNotes
-        };
+            var transitionError = StatusTransitionRules.Validate(oldStatus, request.NewStatus);
+            if (transitionError is not null)
+            {
+                _logger.LogWarning("Invalid status transition attempted: {Old} → {New} for registration {Id}",
+                    oldStatus, request.NewStatus, registration.Id);
+                return (false, transitionError);
+            }
 
-        _db.RegistrationStatusHistories.Add(history);
+            registration.Status = request.NewStatus;
+
+            // Record status change in audit trail
+            _db.RegistrationStatusHistories.Add(new RegistrationStatusHistory
+            {
+                TeamRegistrationId = registration.Id,
+                OldStatus = oldStatus,
+                NewStatus = request.NewStatus,
+                ChangedByAdminId = request.AdminUserId,
+                ChangedAtUtc = DateTime.UtcNow,
+                Notes = request.AdminNotes
+            });
+        }
+
+        // Always update admin notes and review tracking
+        registration.AdminNotes = request.AdminNotes;
+        registration.ReviewedAtUtc = DateTime.UtcNow;
+        registration.ReviewedByAdminId = request.AdminUserId;
 
         try
         {
             await _db.SaveChangesAsync(cancellationToken);
-            _logger.LogInformation("Registration {Id} ({Ref}) status: {Old} → {New} by admin {Admin}",
-                registration.Id, registration.ReferenceNumber, oldStatus, request.NewStatus, request.AdminUserId);
+
+            if (statusChanged)
+            {
+                _logger.LogInformation("Registration {Id} ({Ref}) status: {Old} → {New} by admin {Admin}",
+                    registration.Id, registration.ReferenceNumber, oldStatus, request.NewStatus, request.AdminUserId);
+            }
+            else
+            {
+                _logger.LogInformation("Registration {Id} ({Ref}) notes updated by admin {Admin}",
+                    registration.Id, registration.ReferenceNumber, request.AdminUserId);
+            }
+
             return (true, null);
         }
         catch (DbUpdateConcurrencyException)
