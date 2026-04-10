@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/JudgesTournament.Application/JudgesTournament.Application.csproj" />
+    <Project Path="src/JudgesTournament.Domain/JudgesTournament.Domain.csproj" />
+    <Project Path="src/JudgesTournament.Infrastructure/JudgesTournament.Infrastructure.csproj" />
+    <Project Path="src/JudgesTournament.Web/JudgesTournament.Web.csproj" />
+  </Folder>
+</Solution>

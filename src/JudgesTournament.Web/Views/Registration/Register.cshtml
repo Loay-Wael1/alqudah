@@ -1,0 +1,172 @@
+@model JudgesTournament.Web.ViewModels.RegisterTeamViewModel
+@using JudgesTournament.Domain.Constants
+@{
+    ViewData["Title"] = "تسجيل فريق";
+}
+
+<section class="py-5 bg-light">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="card border-0 shadow">
+                    <div class="card-header bg-primary-gradient text-white text-center py-4">
+                        <h2 class="mb-1 fw-bold"><i class="bi bi-pencil-square"></i> تسجيل فريق جديد</h2>
+                        <p class="mb-0 opacity-90">بطولة القضاة 2026 - تسجيل مبدئي</p>
+                    </div>
+                    <div class="card-body p-4">
+
+                        @if (!Model.IsRegistrationOpen)
+                        {
+                            <div class="alert alert-warning text-center py-4" role="alert">
+                                <i class="bi bi-lock-fill fs-2 d-block mb-2"></i>
+                                <h4 class="alert-heading">التسجيل مغلق حاليًا</h4>
+                                <p class="mb-0">عذرًا، باب التسجيل مغلق حاليًا. تابعونا لمعرفة موعد فتح التسجيل.</p>
+                            </div>
+                        }
+                        else
+                        {
+                            <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+                            <form asp-action="Register" method="post" enctype="multipart/form-data" id="registration-form">
+                                @Html.AntiForgeryToken()
+
+                                <!-- Team Info -->
+                                <h5 class="fw-bold text-primary mb-3 border-bottom pb-2">
+                                    <i class="bi bi-people-fill"></i> بيانات الفريق
+                                </h5>
+
+                                <div class="mb-3">
+                                    <label asp-for="TeamName" class="form-label fw-semibold"></label>
+                                    <input asp-for="TeamName" class="form-control form-control-lg" placeholder="مثال: نادي القضاة" />
+                                    <span asp-validation-for="TeamName" class="text-danger small"></span>
+                                </div>
+
+                                <div class="row g-3 mb-3">
+                                    <div class="col-md-6">
+                                        <label asp-for="Governorate" class="form-label fw-semibold"></label>
+                                        <select asp-for="Governorate" class="form-select form-select-lg">
+                                            <option value="">-- اختر المحافظة --</option>
+                                            @foreach (var gov in Governorates.All)
+                                            {
+                                                <option value="@gov">@gov</option>
+                                            }
+                                        </select>
+                                        <span asp-validation-for="Governorate" class="text-danger small"></span>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label asp-for="PlayersCount" class="form-label fw-semibold"></label>
+                                        <input asp-for="PlayersCount" type="number" class="form-control form-control-lg" min="7" max="25" />
+                                        <span asp-validation-for="PlayersCount" class="text-danger small"></span>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label asp-for="UniformColor" class="form-label fw-semibold"></label>
+                                        <input asp-for="UniformColor" class="form-control form-control-lg" placeholder="مثال: أحمر" />
+                                        <span asp-validation-for="UniformColor" class="text-danger small"></span>
+                                    </div>
+                                </div>
+
+                                <!-- Contact Info -->
+                                <h5 class="fw-bold text-primary mb-3 mt-4 border-bottom pb-2">
+                                    <i class="bi bi-person-lines-fill"></i> بيانات التواصل
+                                </h5>
+
+                                <div class="mb-3">
+                                    <label asp-for="ContactPersonName" class="form-label fw-semibold"></label>
+                                    <input asp-for="ContactPersonName" class="form-control form-control-lg" placeholder="الاسم الكامل لمسؤول الفريق" />
+                                    <span asp-validation-for="ContactPersonName" class="text-danger small"></span>
+                                </div>
+
+                                <div class="row g-3 mb-3">
+                                    <div class="col-md-6">
+                                        <label asp-for="PhoneNumber" class="form-label fw-semibold"></label>
+                                        <input asp-for="PhoneNumber" class="form-control form-control-lg" dir="ltr" placeholder="01XXXXXXXXX" type="tel" />
+                                        <span asp-validation-for="PhoneNumber" class="text-danger small"></span>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label asp-for="WhatsAppNumber" class="form-label fw-semibold"></label>
+                                        <input asp-for="WhatsAppNumber" class="form-control form-control-lg" dir="ltr" placeholder="01XXXXXXXXX" type="tel" />
+                                        <span asp-validation-for="WhatsAppNumber" class="text-danger small"></span>
+                                    </div>
+                                </div>
+
+                                <!-- Payment Info -->
+                                <h5 class="fw-bold text-primary mb-3 mt-4 border-bottom pb-2">
+                                    <i class="bi bi-credit-card-fill"></i> بيانات التحويل (Vodafone Cash)
+                                </h5>
+
+                                <div class="row g-3 mb-3">
+                                    <div class="col-md-6">
+                                        <label asp-for="TransferFromNumber" class="form-label fw-semibold"></label>
+                                        <input asp-for="TransferFromNumber" class="form-control form-control-lg" dir="ltr" placeholder="01XXXXXXXXX" type="tel" />
+                                        <span asp-validation-for="TransferFromNumber" class="text-danger small"></span>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label asp-for="TransferName" class="form-label fw-semibold"></label>
+                                        <input asp-for="TransferName" class="form-control form-control-lg" placeholder="الاسم كما يظهر في التحويل" />
+                                        <span asp-validation-for="TransferName" class="text-danger small"></span>
+                                    </div>
+                                </div>
+
+                                <div class="row g-3 mb-3">
+                                    <div class="col-md-6">
+                                        <label asp-for="TransferAmount" class="form-label fw-semibold"></label>
+                                        <div class="input-group input-group-lg">
+                                            <input asp-for="TransferAmount" type="number" step="0.01" class="form-control" />
+                                            <span class="input-group-text">جنيه</span>
+                                        </div>
+                                        <span asp-validation-for="TransferAmount" class="text-danger small"></span>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label asp-for="TransferDate" class="form-label fw-semibold"></label>
+                                        <input asp-for="TransferDate" type="date" class="form-control form-control-lg" />
+                                        <span asp-validation-for="TransferDate" class="text-danger small"></span>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label asp-for="ReceiptImage" class="form-label fw-semibold"></label>
+                                    <input asp-for="ReceiptImage" type="file" class="form-control form-control-lg" accept=".jpg,.jpeg,.png,.webp" />
+                                    <div class="form-text">الأنواع المسموحة: JPG, PNG, WebP - الحد الأقصى: 2 ميجابايت</div>
+                                    <span asp-validation-for="ReceiptImage" class="text-danger small"></span>
+                                </div>
+
+                                <!-- Agreements -->
+                                <h5 class="fw-bold text-primary mb-3 mt-4 border-bottom pb-2">
+                                    <i class="bi bi-shield-check"></i> الموافقات
+                                </h5>
+
+                                <div class="form-check mb-3">
+                                    <input asp-for="AgreedToTerms" class="form-check-input" type="checkbox" id="agreedToTerms" />
+                                    <label class="form-check-label" for="agreedToTerms">
+                                        أوافق على <a href="/#terms" target="_blank">الشروط والأحكام</a>
+                                    </label>
+                                    <br />
+                                    <span asp-validation-for="AgreedToTerms" class="text-danger small"></span>
+                                </div>
+
+                                <div class="form-check mb-4">
+                                    <input asp-for="ConfirmedPreliminary" class="form-check-input" type="checkbox" id="confirmedPreliminary" />
+                                    <label class="form-check-label" for="confirmedPreliminary">
+                                        أؤكد أن هذا تسجيل مبدئي فقط وأن الإدارة ستتواصل معي بعد المراجعة
+                                    </label>
+                                    <br />
+                                    <span asp-validation-for="ConfirmedPreliminary" class="text-danger small"></span>
+                                </div>
+
+                                <div class="d-grid">
+                                    <button type="submit" class="btn btn-success btn-lg fw-bold py-3" id="btn-submit-registration">
+                                        <i class="bi bi-send-fill"></i> إرسال طلب التسجيل
+                                    </button>
+                                </div>
+                            </form>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

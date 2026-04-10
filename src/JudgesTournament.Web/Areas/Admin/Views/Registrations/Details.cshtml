@@ -1,0 +1,210 @@
+@model JudgesTournament.Web.ViewModels.Admin.RegistrationDetailsViewModel
+@{
+    ViewData["Title"] = "تفاصيل الطلب";
+}
+
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <h2 class="fw-bold mb-0">
+        <i class="bi bi-file-earmark-text text-primary"></i>
+        تفاصيل الطلب
+        <span class="font-monospace text-muted fs-5" dir="ltr">@Model.Registration.ReferenceNumber</span>
+    </h2>
+    <a href="/Admin/Registrations" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-right"></i> العودة للقائمة
+    </a>
+</div>
+
+<div class="row g-4">
+    <!-- Registration Details -->
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white fw-bold py-3">
+                <i class="bi bi-people-fill text-primary"></i> بيانات الفريق
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label text-muted small mb-0">اسم الفريق</label>
+                        <p class="fw-semibold mb-2">@Model.Registration.TeamName</p>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label text-muted small mb-0">المحافظة</label>
+                        <p class="fw-semibold mb-2">@Model.Registration.Governorate</p>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label text-muted small mb-0">عدد اللاعبين</label>
+                        <p class="fw-semibold mb-2">@Model.Registration.PlayersCount</p>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-muted small mb-0">لون الزي</label>
+                        <p class="fw-semibold mb-2">@Model.Registration.UniformColor</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white fw-bold py-3">
+                <i class="bi bi-person-lines-fill text-primary"></i> بيانات التواصل
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label text-muted small mb-0">مسؤول الفريق</label>
+                        <p class="fw-semibold mb-2">@Model.Registration.ContactPersonName</p>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label text-muted small mb-0">الهاتف</label>
+                        <p class="fw-semibold mb-2" dir="ltr">@Model.Registration.PhoneNumber</p>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label text-muted small mb-0">واتساب</label>
+                        <p class="fw-semibold mb-2" dir="ltr">@Model.Registration.WhatsAppNumber</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white fw-bold py-3">
+                <i class="bi bi-credit-card-fill text-primary"></i> بيانات التحويل
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label text-muted small mb-0">الرقم المحول منه</label>
+                        <p class="fw-semibold mb-2" dir="ltr">@Model.Registration.TransferFromNumber</p>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label text-muted small mb-0">اسم صاحب التحويل</label>
+                        <p class="fw-semibold mb-2">@Model.Registration.TransferName</p>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label text-muted small mb-0">المبلغ</label>
+                        <p class="fw-semibold mb-2">@Model.Registration.TransferAmount.ToString("N2") ج.م</p>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label text-muted small mb-0">التاريخ</label>
+                        <p class="fw-semibold mb-2">@Model.Registration.TransferDate.ToString("yyyy/MM/dd")</p>
+                    </div>
+                </div>
+
+                <!-- Receipt Image -->
+                <div class="mt-3">
+                    <label class="form-label text-muted small mb-2">صورة الإيصال</label>
+                    <div>
+                        <a href="/Admin/Registrations/ViewReceipt?path=@Model.Registration.ReceiptImagePath" target="_blank" class="btn btn-outline-primary btn-sm">
+                            <i class="bi bi-image"></i> عرض صورة الإيصال
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Status History -->
+        @if (Model.Registration.StatusHistory.Any())
+        {
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white fw-bold py-3">
+                    <i class="bi bi-clock-history text-primary"></i> سجل تغييرات الحالة
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-sm mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>من</th>
+                                    <th>إلى</th>
+                                    <th>التاريخ</th>
+                                    <th>ملاحظات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var h in Model.Registration.StatusHistory)
+                                {
+                                    <tr>
+                                        <td>@GetStatusArabic(h.OldStatus)</td>
+                                        <td>@GetStatusArabic(h.NewStatus)</td>
+                                        <td class="small">@h.ChangedAtUtc.ToLocalTime().ToString("yyyy/MM/dd HH:mm")</td>
+                                        <td class="small text-muted">@(h.Notes ?? "—")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <!-- Status Update Panel -->
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm sticky-top" style="top: 80px;">
+            <div class="card-header bg-white fw-bold py-3">
+                <i class="bi bi-gear-fill text-primary"></i> تحديث الحالة
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label text-muted small">الحالة الحالية</label>
+                    <div>
+                        @switch (Model.Registration.Status)
+                        {
+                            case RegistrationStatus.Pending:
+                                <span class="badge bg-warning text-dark fs-6 px-3 py-2">قيد المراجعة</span>
+                                break;
+                            case RegistrationStatus.PaymentVerified:
+                                <span class="badge bg-info fs-6 px-3 py-2">تم التحقق من السداد</span>
+                                break;
+                            case RegistrationStatus.Accepted:
+                                <span class="badge bg-success fs-6 px-3 py-2">مقبول</span>
+                                break;
+                            case RegistrationStatus.Rejected:
+                                <span class="badge bg-danger fs-6 px-3 py-2">مرفوض</span>
+                                break;
+                        }
+                    </div>
+                </div>
+
+                <hr />
+
+                <form asp-area="Admin" asp-controller="Registrations" asp-action="UpdateStatus" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="Registration.Id" value="@Model.Registration.Id" />
+                    <input type="hidden" name="Registration.RowVersion" value="@Convert.ToBase64String(Model.Registration.RowVersion)" />
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">الحالة الجديدة</label>
+                        <select name="NewStatus" class="form-select">
+                            <option value="@((int)RegistrationStatus.Pending)" selected="@(Model.Registration.Status == RegistrationStatus.Pending)">قيد المراجعة</option>
+                            <option value="@((int)RegistrationStatus.PaymentVerified)" selected="@(Model.Registration.Status == RegistrationStatus.PaymentVerified)">تم التحقق من السداد</option>
+                            <option value="@((int)RegistrationStatus.Accepted)" selected="@(Model.Registration.Status == RegistrationStatus.Accepted)">مقبول</option>
+                            <option value="@((int)RegistrationStatus.Rejected)" selected="@(Model.Registration.Status == RegistrationStatus.Rejected)">مرفوض</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">ملاحظات إدارية</label>
+                        <textarea name="AdminNotes" class="form-control" rows="3" placeholder="أضف ملاحظات...">@Model.AdminNotes</textarea>
+                    </div>
+
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary fw-bold" id="btn-update-status">
+                            <i class="bi bi-save"></i> حفظ التغييرات
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@functions {
+    string GetStatusArabic(RegistrationStatus status) => status switch
+    {
+        RegistrationStatus.Pending => "قيد المراجعة",
+        RegistrationStatus.PaymentVerified => "تم التحقق من السداد",
+        RegistrationStatus.Accepted => "مقبول",
+        RegistrationStatus.Rejected => "مرفوض",
+        _ => status.ToString()
+    };
+}

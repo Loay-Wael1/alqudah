@@ -1,0 +1,179 @@
+/* بطولة القضاة 2026 - Main Stylesheet */
+
+/* ====== Base ====== */
+:root {
+    --primary-green: #1B5E20;
+    --primary-green-light: #2E7D32;
+    --gold: #FFD700;
+    --gold-dark: #FFC107;
+}
+
+* {
+    font-family: 'Cairo', sans-serif !important;
+}
+
+body {
+    background-color: #fafafa;
+    color: #333;
+}
+
+/* ====== Gradient Backgrounds ====== */
+.bg-primary-gradient {
+    background: linear-gradient(135deg, var(--primary-green) 0%, var(--primary-green-light) 50%, #388E3C 100%) !important;
+}
+
+/* ====== Hero Section ====== */
+.hero-section {
+    background: linear-gradient(135deg, #0d3b0f 0%, var(--primary-green) 50%, #1a472a 100%);
+    min-height: 70vh;
+    display: flex;
+    align-items: center;
+}
+
+.hero-overlay {
+    position: absolute;
+    inset: 0;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,215,0,0.05)" stroke-width="2"/></svg>') repeat;
+    background-size: 80px;
+}
+
+.min-vh-75 {
+    min-height: 55vh;
+}
+
+.fw-900 {
+    font-weight: 900 !important;
+}
+
+/* ====== Cards ====== */
+.card-hover {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card-hover:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* ====== Icon Circle ====== */
+.icon-circle {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* ====== Divider ====== */
+.divider {
+    width: 60px;
+    height: 4px;
+    background: var(--gold);
+    border-radius: 2px;
+    margin-top: 12px;
+}
+
+/* ====== Hover Lift Effect ====== */
+.hover-lift {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.hover-lift:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* ====== Trophy Animation ====== */
+.trophy-icon-container {
+    animation: float 4s ease-in-out infinite;
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-15px); }
+}
+
+/* ====== Success Icon Animation ====== */
+.success-icon {
+    animation: scaleIn 0.5s ease-out;
+}
+
+@keyframes scaleIn {
+    from { transform: scale(0); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+
+/* ====== Form Styling ====== */
+.form-control:focus,
+.form-select:focus {
+    border-color: var(--primary-green);
+    box-shadow: 0 0 0 0.2rem rgba(27, 94, 32, 0.15);
+}
+
+.form-check-input:checked {
+    background-color: var(--primary-green);
+    border-color: var(--primary-green);
+}
+
+/* ====== Buttons ====== */
+.btn-primary {
+    background-color: var(--primary-green) !important;
+    border-color: var(--primary-green) !important;
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-green-light) !important;
+    border-color: var(--primary-green-light) !important;
+}
+
+.btn-outline-primary {
+    color: var(--primary-green) !important;
+    border-color: var(--primary-green) !important;
+}
+
+.btn-outline-primary:hover {
+    background-color: var(--primary-green) !important;
+    color: white !important;
+}
+
+.text-primary {
+    color: var(--primary-green) !important;
+}
+
+/* ====== Validation ====== */
+.field-validation-error {
+    display: block;
+    margin-top: 4px;
+}
+
+.input-validation-error {
+    border-color: #dc3545 !important;
+}
+
+/* ====== Responsive ====== */
+@media (max-width: 768px) {
+    .hero-section {
+        min-height: auto;
+        padding: 2rem 0;
+    }
+
+    .display-3 {
+        font-size: 2.2rem !important;
+    }
+
+    .trophy-icon-container i {
+        font-size: 6rem !important;
+    }
+
+    .table-responsive {
+        font-size: 0.85rem;
+    }
+}
+
+/* ====== Print ====== */
+@media print {
+    .navbar, footer, .btn {
+        display: none !important;
+    }
+}

@@ -1,0 +1,69 @@
+@model JudgesTournament.Web.ViewModels.Admin.DashboardViewModel
+@{
+    ViewData["Title"] = "لوحة الإدارة";
+}
+
+<h2 class="fw-bold mb-4"><i class="bi bi-speedometer2 text-primary"></i> لوحة الإدارة</h2>
+
+<div class="row g-4 mb-4">
+    <div class="col-md-4 col-lg-2">
+        <div class="card border-0 shadow-sm text-center h-100">
+            <div class="card-body">
+                <i class="bi bi-collection fs-2 text-primary"></i>
+                <h3 class="fw-900 mt-2">@Model.Stats.TotalRegistrations</h3>
+                <p class="text-muted small mb-0">إجمالي الطلبات</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 col-lg-2">
+        <div class="card border-0 shadow-sm text-center h-100 border-start border-warning border-3">
+            <div class="card-body">
+                <i class="bi bi-hourglass-split fs-2 text-warning"></i>
+                <h3 class="fw-900 mt-2">@Model.Stats.PendingCount</h3>
+                <p class="text-muted small mb-0">قيد المراجعة</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 col-lg-2">
+        <div class="card border-0 shadow-sm text-center h-100 border-start border-info border-3">
+            <div class="card-body">
+                <i class="bi bi-cash-coin fs-2 text-info"></i>
+                <h3 class="fw-900 mt-2">@Model.Stats.PaymentVerifiedCount</h3>
+                <p class="text-muted small mb-0">تم التحقق من السداد</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 col-lg-2">
+        <div class="card border-0 shadow-sm text-center h-100 border-start border-success border-3">
+            <div class="card-body">
+                <i class="bi bi-check-circle fs-2 text-success"></i>
+                <h3 class="fw-900 mt-2">@Model.Stats.AcceptedCount</h3>
+                <p class="text-muted small mb-0">مقبول</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 col-lg-2">
+        <div class="card border-0 shadow-sm text-center h-100 border-start border-danger border-3">
+            <div class="card-body">
+                <i class="bi bi-x-circle fs-2 text-danger"></i>
+                <h3 class="fw-900 mt-2">@Model.Stats.RejectedCount</h3>
+                <p class="text-muted small mb-0">مرفوض</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 col-lg-2">
+        <div class="card border-0 shadow-sm text-center h-100 border-start border-primary border-3">
+            <div class="card-body">
+                <i class="bi bi-currency-dollar fs-2 text-primary"></i>
+                <h3 class="fw-900 mt-2">@Model.Stats.TotalTransferAmount.ToString("N0")</h3>
+                <p class="text-muted small mb-0">إجمالي التحويلات (ج.م)</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="d-flex gap-3">
+    <a href="/Admin/Registrations" class="btn btn-primary btn-lg">
+        <i class="bi bi-list-ul"></i> عرض جميع الطلبات
+    </a>
+</div>

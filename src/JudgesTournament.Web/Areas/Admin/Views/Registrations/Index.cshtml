@@ -1,0 +1,137 @@
+@model JudgesTournament.Web.ViewModels.Admin.RegistrationListViewModel
+@{
+    ViewData["Title"] = "قائمة الطلبات";
+}
+
+<h2 class="fw-bold mb-4"><i class="bi bi-list-ul text-primary"></i> طلبات التسجيل</h2>
+
+<!-- Search & Filter -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+        <form method="get" asp-area="Admin" asp-controller="Registrations" asp-action="Index">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">بحث</label>
+                    <input name="SearchTerm" value="@Model.Filter.SearchTerm" class="form-control" placeholder="اسم الفريق، رقم الهاتف، رقم الطلب..." />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">الحالة</label>
+                    <select name="Status" class="form-select">
+                        <option value="">-- الكل --</option>
+                        <option value="@((int)RegistrationStatus.Pending)" selected="@(Model.Filter.Status == RegistrationStatus.Pending)">قيد المراجعة</option>
+                        <option value="@((int)RegistrationStatus.PaymentVerified)" selected="@(Model.Filter.Status == RegistrationStatus.PaymentVerified)">تم التحقق من السداد</option>
+                        <option value="@((int)RegistrationStatus.Accepted)" selected="@(Model.Filter.Status == RegistrationStatus.Accepted)">مقبول</option>
+                        <option value="@((int)RegistrationStatus.Rejected)" selected="@(Model.Filter.Status == RegistrationStatus.Rejected)">مرفوض</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">المحافظة</label>
+                    <select name="Governorate" class="form-select">
+                        <option value="">-- الكل --</option>
+                        @foreach (var gov in Governorates.All)
+                        {
+                            <option value="@gov" selected="@(Model.Filter.Governorate == gov)">@gov</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100"><i class="bi bi-search"></i> بحث</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Results count -->
+<p class="text-muted mb-3">عدد النتائج: <strong>@Model.PagedResult.TotalCount</strong></p>
+
+<!-- Table -->
+<div class="card border-0 shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0 align-middle">
+            <thead class="table-dark">
+                <tr>
+                    <th>رقم الطلب</th>
+                    <th>اسم الفريق</th>
+                    <th>المحافظة</th>
+                    <th>المسؤول</th>
+                    <th>الهاتف</th>
+                    <th>الحالة</th>
+                    <th>التاريخ</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.PagedResult.Items.Any())
+                {
+                    <tr>
+                        <td colspan="8" class="text-center py-5 text-muted">
+                            <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+                            لا توجد طلبات
+                        </td>
+                    </tr>
+                }
+                @foreach (var item in Model.PagedResult.Items)
+                {
+                    <tr>
+                        <td class="font-monospace small" dir="ltr">@item.ReferenceNumber</td>
+                        <td class="fw-semibold">@item.TeamName</td>
+                        <td>@item.Governorate</td>
+                        <td>@item.ContactPersonName</td>
+                        <td dir="ltr">@item.PhoneNumber</td>
+                        <td>
+                            @switch (item.Status)
+                            {
+                                case RegistrationStatus.Pending:
+                                    <span class="badge bg-warning text-dark">قيد المراجعة</span>
+                                    break;
+                                case RegistrationStatus.PaymentVerified:
+                                    <span class="badge bg-info">تم التحقق</span>
+                                    break;
+                                case RegistrationStatus.Accepted:
+                                    <span class="badge bg-success">مقبول</span>
+                                    break;
+                                case RegistrationStatus.Rejected:
+                                    <span class="badge bg-danger">مرفوض</span>
+                                    break;
+                            }
+                        </td>
+                        <td class="small text-muted">@item.CreatedAtUtc.ToLocalTime().ToString("yyyy/MM/dd")</td>
+                        <td>
+                            <a href="/Admin/Registrations/Details/@item.Id" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-eye"></i> تفاصيل
+                            </a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Pagination -->
+@if (Model.PagedResult.TotalPages > 1)
+{
+    <nav class="mt-4">
+        <ul class="pagination justify-content-center">
+            <li class="page-item @(Model.PagedResult.HasPreviousPage ? "" : "disabled")">
+                <a class="page-link" href="/Admin/Registrations?Page=@(Model.PagedResult.Page - 1)&SearchTerm=@Model.Filter.SearchTerm&Status=@((int?)Model.Filter.Status)&Governorate=@Model.Filter.Governorate">
+                    <i class="bi bi-chevron-right"></i> السابق
+                </a>
+            </li>
+
+            @for (var i = 1; i <= Model.PagedResult.TotalPages; i++)
+            {
+                <li class="page-item @(i == Model.PagedResult.Page ? "active" : "")">
+                    <a class="page-link" href="/Admin/Registrations?Page=@i&SearchTerm=@Model.Filter.SearchTerm&Status=@((int?)Model.Filter.Status)&Governorate=@Model.Filter.Governorate">@i</a>
+                </li>
+            }
+
+            <li class="page-item @(Model.PagedResult.HasNextPage ? "" : "disabled")">
+                <a class="page-link" href="/Admin/Registrations?Page=@(Model.PagedResult.Page + 1)&SearchTerm=@Model.Filter.SearchTerm&Status=@((int?)Model.Filter.Status)&Governorate=@Model.Filter.Governorate">
+                    التالي <i class="bi bi-chevron-left"></i>
+                </a>
+            </li>
+        </ul>
+    </nav>
+}

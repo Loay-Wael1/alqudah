@@ -1,0 +1,45 @@
+@model JudgesTournament.Web.ViewModels.RegistrationSuccessViewModel
+@{
+    ViewData["Title"] = "تم التسجيل بنجاح";
+}
+
+<section class="py-5">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-6">
+                <div class="card border-0 shadow text-center">
+                    <div class="card-body p-5">
+                        <div class="success-icon mb-4">
+                            <i class="bi bi-check-circle-fill text-success" style="font-size: 5rem;"></i>
+                        </div>
+                        <h2 class="fw-bold text-success mb-3">تم استلام طلبك بنجاح!</h2>
+                        <p class="text-muted mb-4">
+                            شكرًا لتسجيل فريق <strong class="text-dark">@Model.TeamName</strong> في بطولة القضاة 2026.
+                            <br />سيتم مراجعة طلبك من قبل الإدارة والتواصل معك قريبًا.
+                        </p>
+
+                        <div class="bg-light rounded p-4 mb-4">
+                            <p class="mb-2 text-muted small">رقم الطلب المرجعي</p>
+                            <h3 class="fw-900 text-primary mb-0 font-monospace" dir="ltr">@Model.ReferenceNumber</h3>
+                        </div>
+
+                        <div class="alert alert-info text-start">
+                            <i class="bi bi-info-circle-fill"></i>
+                            <strong>ملاحظة مهمة:</strong>
+                            <ul class="mb-0 mt-2">
+                                <li>احتفظ برقم الطلب المرجعي للمتابعة.</li>
+                                <li>هذا تسجيل مبدئي فقط.</li>
+                                <li>ستقوم الإدارة بمراجعة الطلب والتأكد من السداد.</li>
+                                <li>سيتم التواصل معك في حالة القبول.</li>
+                            </ul>
+                        </div>
+
+                        <a href="/" class="btn btn-primary btn-lg mt-3">
+                            <i class="bi bi-house-fill"></i> العودة للرئيسية
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
