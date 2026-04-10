@@ -6,7 +6,6 @@ using JudgesTournament.Domain.Constants;
 using JudgesTournament.Domain.Entities;
 using JudgesTournament.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -71,53 +70,54 @@ public class RegistrationService : IRegistrationService
             return RegistrationResponse.Fail("هذا الفريق مسجل بالفعل في نفس المحافظة.");
         }
 
-        // === Create entity ===
-        var entity = new TeamRegistration
-        {
-            TeamName = request.TeamName.Trim(),
-            NormalizedTeamName = normalizedName,
-            Governorate = request.Governorate,
-            PlayersCount = request.PlayersCount,
-            UniformColor = request.UniformColor.Trim(),
-            ContactPersonName = request.ContactPersonName.Trim(),
-            PhoneNumber = normalizedPhone,
-            WhatsAppNumber = normalizedWhatsApp,
-            TransferFromNumber = normalizedTransferFrom,
-            TransferName = request.TransferName.Trim(),
-            TransferAmount = request.TransferAmount,
-            TransferDate = request.TransferDate,
-            ReceiptImagePath = request.ReceiptImagePath,
-            AgreedToTerms = request.AgreedToTerms,
-            ConfirmedPreliminary = request.ConfirmedPreliminary,
-            Status = RegistrationStatus.Pending,
-            CreatedAtUtc = DateTime.UtcNow
-        };
+        // Use execution strategy to support retriable transactions with EnableRetryOnFailure
+        var strategy = _db.Database.CreateExecutionStrategy();
 
-        // Use transaction to ensure entity + reference number are saved atomically
-        IDbContextTransaction? transaction = null;
         try
         {
-            transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
+            var referenceNumber = await strategy.ExecuteAsync(async ct =>
+            {
+                var entity = new TeamRegistration
+                {
+                    TeamName = request.TeamName.Trim(),
+                    NormalizedTeamName = normalizedName,
+                    Governorate = request.Governorate,
+                    PlayersCount = request.PlayersCount,
+                    UniformColor = request.UniformColor.Trim(),
+                    ContactPersonName = request.ContactPersonName.Trim(),
+                    PhoneNumber = normalizedPhone,
+                    WhatsAppNumber = normalizedWhatsApp,
+                    TransferFromNumber = normalizedTransferFrom,
+                    TransferName = request.TransferName.Trim(),
+                    TransferAmount = request.TransferAmount,
+                    TransferDate = request.TransferDate,
+                    ReceiptImagePath = request.ReceiptImagePath,
+                    AgreedToTerms = request.AgreedToTerms,
+                    ConfirmedPreliminary = request.ConfirmedPreliminary,
+                    Status = RegistrationStatus.Pending,
+                    CreatedAtUtc = DateTime.UtcNow
+                };
 
-            _db.TeamRegistrations.Add(entity);
-            await _db.SaveChangesAsync(cancellationToken);
+                await using var transaction = await _db.Database.BeginTransactionAsync(ct);
 
-            // Generate deterministic reference number using DB-assigned Id
-            entity.ReferenceNumber = $"QJ-2026-{entity.Id:D6}";
-            await _db.SaveChangesAsync(cancellationToken);
+                _db.TeamRegistrations.Add(entity);
+                await _db.SaveChangesAsync(ct);
 
-            await transaction.CommitAsync(cancellationToken);
+                // Generate deterministic reference number using DB-assigned Id
+                entity.ReferenceNumber = $"QJ-2026-{entity.Id:D6}";
+                await _db.SaveChangesAsync(ct);
+
+                await transaction.CommitAsync(ct);
+                return entity.ReferenceNumber!;
+            }, cancellationToken);
 
             _logger.LogInformation("Registration created: {Ref} for team {Team} from {Gov}",
-                entity.ReferenceNumber, entity.TeamName, entity.Governorate);
+                referenceNumber, request.TeamName, request.Governorate);
 
-            return RegistrationResponse.Ok(entity.ReferenceNumber);
+            return RegistrationResponse.Ok(referenceNumber);
         }
         catch (DbUpdateException ex)
         {
-            if (transaction is not null)
-                await transaction.RollbackAsync(cancellationToken);
-
             var friendlyMessage = DuplicateExceptionHandler.GetFriendlyMessage(ex);
             if (friendlyMessage is not null)
             {
@@ -128,11 +128,6 @@ public class RegistrationService : IRegistrationService
 
             _logger.LogError(ex, "Database error during registration for team {Team}", request.TeamName);
             throw;
-        }
-        finally
-        {
-            if (transaction is not null)
-                await transaction.DisposeAsync();
         }
     }
 
