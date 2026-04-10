@@ -17,30 +17,36 @@ public class RegistrationService : IRegistrationService
     private readonly ILogger<RegistrationService> _logger;
     private readonly RegistrationOptions _regOptions;
 
-    public RegistrationService(IApplicationDbContext db, ILogger<RegistrationService> logger, IOptions<RegistrationOptions> regOptions)
+    public RegistrationService(
+        IApplicationDbContext db,
+        ILogger<RegistrationService> logger,
+        IOptions<RegistrationOptions> regOptions)
     {
         _db = db;
         _logger = logger;
         _regOptions = regOptions.Value;
     }
 
-    public async Task<RegistrationResponse> CreateAsync(CreateRegistrationRequest request, CancellationToken cancellationToken = default)
+    public async Task<RegistrationResponse> CreateAsync(
+        CreateRegistrationRequest request,
+        CancellationToken cancellationToken = default)
     {
-        // === Business validation ===
-
-        // Governorate must be in the official list
+        // Governorate must be in the official list.
         if (!Governorates.All.Contains(request.Governorate))
             return RegistrationResponse.Fail("المحافظة المختارة غير صالحة.");
 
-        // TransferAmount must equal the configured fee
+        // Transfer amount must match the configured fee.
         if (request.TransferAmount != _regOptions.Fee)
             return RegistrationResponse.Fail($"قيمة التحويل يجب أن تكون {_regOptions.Fee} جنيه.");
 
-        // TransferDate must not be in the future
+        // Keep the server-side player-count rule aligned with configuration.
+        if (request.PlayersCount < 7 || request.PlayersCount > _regOptions.MaxPlayersPerTeam)
+            return RegistrationResponse.Fail($"عدد اللاعبين يجب أن يكون بين 7 و {_regOptions.MaxPlayersPerTeam}.");
+
+        // Transfer date must not be in the future.
         if (request.TransferDate.Date > DateTime.UtcNow.Date)
             return RegistrationResponse.Fail("تاريخ التحويل لا يمكن أن يكون في المستقبل.");
 
-        // === Normalize inputs ===
         var normalizedName = TeamNameNormalizer.Normalize(request.TeamName);
         var normalizedPhone = PhoneNormalizer.Normalize(request.PhoneNumber);
         var normalizedWhatsApp = PhoneNormalizer.Normalize(request.WhatsAppNumber);
@@ -49,7 +55,6 @@ public class RegistrationService : IRegistrationService
         if (normalizedPhone.Length < 10)
             return RegistrationResponse.Fail("رقم الهاتف غير صالح.");
 
-        // === Duplicate pre-checks ===
         var phoneExists = await _db.TeamRegistrations
             .AsNoTracking()
             .AnyAsync(r => r.PhoneNumber == normalizedPhone, cancellationToken);
@@ -62,15 +67,19 @@ public class RegistrationService : IRegistrationService
 
         var teamExists = await _db.TeamRegistrations
             .AsNoTracking()
-            .AnyAsync(r => r.NormalizedTeamName == normalizedName && r.Governorate == request.Governorate, cancellationToken);
+            .AnyAsync(
+                r => r.NormalizedTeamName == normalizedName && r.Governorate == request.Governorate,
+                cancellationToken);
 
         if (teamExists)
         {
-            _logger.LogInformation("Duplicate team registration attempt: {Team} in {Gov}", request.TeamName, request.Governorate);
+            _logger.LogInformation(
+                "Duplicate team registration attempt: {Team} in {Gov}",
+                request.TeamName,
+                request.Governorate);
             return RegistrationResponse.Fail("هذا الفريق مسجل بالفعل في نفس المحافظة.");
         }
 
-        // Use execution strategy to support retriable transactions with EnableRetryOnFailure
         var strategy = _db.Database.CreateExecutionStrategy();
 
         try
@@ -103,7 +112,6 @@ public class RegistrationService : IRegistrationService
                 _db.TeamRegistrations.Add(entity);
                 await _db.SaveChangesAsync(ct);
 
-                // Generate deterministic reference number using DB-assigned Id
                 entity.ReferenceNumber = $"QJ-2026-{entity.Id:D6}";
                 await _db.SaveChangesAsync(ct);
 
@@ -111,8 +119,11 @@ public class RegistrationService : IRegistrationService
                 return entity.ReferenceNumber!;
             }, cancellationToken);
 
-            _logger.LogInformation("Registration created: {Ref} for team {Team} from {Gov}",
-                referenceNumber, request.TeamName, request.Governorate);
+            _logger.LogInformation(
+                "Registration created: {Ref} for team {Team} from {Gov}",
+                referenceNumber,
+                request.TeamName,
+                request.Governorate);
 
             return RegistrationResponse.Ok(referenceNumber);
         }
@@ -121,8 +132,10 @@ public class RegistrationService : IRegistrationService
             var friendlyMessage = DuplicateExceptionHandler.GetFriendlyMessage(ex);
             if (friendlyMessage is not null)
             {
-                _logger.LogWarning("Duplicate registration caught at DB level for team {Team}: {Msg}",
-                    request.TeamName, friendlyMessage);
+                _logger.LogWarning(
+                    "Duplicate registration caught at DB level for team {Team}: {Msg}",
+                    request.TeamName,
+                    friendlyMessage);
                 return RegistrationResponse.Fail(friendlyMessage);
             }
 
@@ -165,16 +178,27 @@ public class RegistrationService : IRegistrationService
                         ChangedByAdminId = h.ChangedByAdminId,
                         ChangedAtUtc = h.ChangedAtUtc,
                         Notes = h.Notes
-                    }).ToList()
+                    })
+                    .ToList()
             })
             .FirstOrDefaultAsync(cancellationToken);
     }
 
-    public async Task<PagedResult<RegistrationListItemDto>> GetPagedAsync(RegistrationFilterDto filter, CancellationToken cancellationToken = default)
+    public async Task<string?> GetReceiptPathByIdAsync(int id, CancellationToken cancellationToken = default)
+    {
+        return await _db.TeamRegistrations
+            .AsNoTracking()
+            .Where(r => r.Id == id)
+            .Select(r => r.ReceiptImagePath)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    public async Task<PagedResult<RegistrationListItemDto>> GetPagedAsync(
+        RegistrationFilterDto filter,
+        CancellationToken cancellationToken = default)
     {
         var query = _db.TeamRegistrations.AsNoTracking().AsQueryable();
 
-        // Apply filters
         if (!string.IsNullOrWhiteSpace(filter.SearchTerm))
         {
             var term = filter.SearchTerm.Trim();
@@ -239,7 +263,9 @@ public class RegistrationService : IRegistrationService
         return stats ?? new DashboardStatsDto();
     }
 
-    public async Task<(bool Success, string? ErrorMessage)> UpdateStatusAsync(UpdateRegistrationStatusRequest request, CancellationToken cancellationToken = default)
+    public async Task<(bool Success, string? ErrorMessage)> UpdateStatusAsync(
+        UpdateRegistrationStatusRequest request,
+        CancellationToken cancellationToken = default)
     {
         var registration = await _db.TeamRegistrations
             .FirstOrDefaultAsync(r => r.Id == request.RegistrationId, cancellationToken);
@@ -250,26 +276,26 @@ public class RegistrationService : IRegistrationService
             return (false, "الطلب غير موجود.");
         }
 
-        // Set the original RowVersion for concurrency check
         _db.Entry(registration).Property(r => r.RowVersion).OriginalValue = request.RowVersion;
 
         var oldStatus = registration.Status;
         var statusChanged = oldStatus != request.NewStatus;
 
-        // Validate status transition if status is actually changing
         if (statusChanged)
         {
             var transitionError = StatusTransitionRules.Validate(oldStatus, request.NewStatus);
             if (transitionError is not null)
             {
-                _logger.LogWarning("Invalid status transition attempted: {Old} → {New} for registration {Id}",
-                    oldStatus, request.NewStatus, registration.Id);
+                _logger.LogWarning(
+                    "Invalid status transition attempted: {Old} -> {New} for registration {Id}",
+                    oldStatus,
+                    request.NewStatus,
+                    registration.Id);
                 return (false, transitionError);
             }
 
             registration.Status = request.NewStatus;
 
-            // Record status change in audit trail
             _db.RegistrationStatusHistories.Add(new RegistrationStatusHistory
             {
                 TeamRegistrationId = registration.Id,
@@ -281,7 +307,6 @@ public class RegistrationService : IRegistrationService
             });
         }
 
-        // Always update admin notes and review tracking
         registration.AdminNotes = request.AdminNotes;
         registration.ReviewedAtUtc = DateTime.UtcNow;
         registration.ReviewedByAdminId = request.AdminUserId;
@@ -292,21 +317,32 @@ public class RegistrationService : IRegistrationService
 
             if (statusChanged)
             {
-                _logger.LogInformation("Registration {Id} ({Ref}) status: {Old} → {New} by admin {Admin}",
-                    registration.Id, registration.ReferenceNumber, oldStatus, request.NewStatus, request.AdminUserId);
+                _logger.LogInformation(
+                    "Registration {Id} ({Ref}) status: {Old} -> {New} by admin {Admin}",
+                    registration.Id,
+                    registration.ReferenceNumber,
+                    oldStatus,
+                    request.NewStatus,
+                    request.AdminUserId);
             }
             else
             {
-                _logger.LogInformation("Registration {Id} ({Ref}) notes updated by admin {Admin}",
-                    registration.Id, registration.ReferenceNumber, request.AdminUserId);
+                _logger.LogInformation(
+                    "Registration {Id} ({Ref}) notes updated by admin {Admin}",
+                    registration.Id,
+                    registration.ReferenceNumber,
+                    request.AdminUserId);
             }
 
             return (true, null);
         }
         catch (DbUpdateConcurrencyException)
         {
-            _logger.LogWarning("Concurrency conflict on registration {Id} ({Ref}) by admin {Admin}",
-                registration.Id, registration.ReferenceNumber, request.AdminUserId);
+            _logger.LogWarning(
+                "Concurrency conflict on registration {Id} ({Ref}) by admin {Admin}",
+                registration.Id,
+                registration.ReferenceNumber,
+                request.AdminUserId);
             return (false, "تم تعديل هذا الطلب من قبل مستخدم آخر. يرجى إعادة تحميل الصفحة والمحاولة مرة أخرى.");
         }
     }

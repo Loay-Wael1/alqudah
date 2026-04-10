@@ -29,15 +29,15 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-// Status code pages (404, 403, etc.) — must be before routing
-app.UseStatusCodePagesWithReExecute("/Home/StatusCode", "?code={0}");
-
 app.UseHttpsRedirection();
-app.UseStaticFiles();
 
-// Security headers
+// Security headers should apply to both static and dynamic responses.
 app.UseSecurityHeaders();
 
+// Status code pages (404, 403, etc.) must be before routing.
+app.UseStatusCodePagesWithReExecute("/Home/StatusCode", "?code={0}");
+
+app.UseStaticFiles();
 app.UseRouting();
 app.UseRateLimiter();
 app.UseAuthentication();

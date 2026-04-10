@@ -14,7 +14,8 @@ public class FileStorageService : IFileStorageService
     // Magic bytes for image validation
     private static readonly byte[] JpegSignature = [0xFF, 0xD8, 0xFF];
     private static readonly byte[] PngSignature = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
-    private static readonly byte[] WebpSignature = [0x52, 0x49, 0x46, 0x46]; // RIFF
+    private static readonly byte[] WebpRiffSignature = [0x52, 0x49, 0x46, 0x46]; // RIFF
+    private static readonly byte[] WebpSignature = [0x57, 0x45, 0x42, 0x50]; // WEBP
 
     public FileStorageService(IOptions<UploadOptions> options, ILogger<FileStorageService> logger, IWebHostEnvironmentAccessor hostAccessor)
     {
@@ -64,7 +65,13 @@ public class FileStorageService : IFileStorageService
 
         try
         {
-            await using var fileStreamOut = new FileStream(fullPath, FileMode.Create);
+            await using var fileStreamOut = new FileStream(
+                fullPath,
+                FileMode.Create,
+                FileAccess.Write,
+                FileShare.None,
+                bufferSize: 81920,
+                options: FileOptions.Asynchronous);
             await fileStream.CopyToAsync(fileStreamOut, cancellationToken);
 
             _logger.LogInformation("Receipt saved: {FileName} ({Size} bytes)", safeFileName, fileStream.Length);
@@ -106,11 +113,11 @@ public class FileStorageService : IFileStorageService
     /// </summary>
     private static async Task<bool> IsValidImageAsync(Stream stream, string extension)
     {
-        if (!stream.CanSeek) return true; // Can't validate non-seekable streams, allow through
+        if (!stream.CanSeek) return false;
 
         stream.Position = 0;
-        var header = new byte[8];
-        var bytesRead = await stream.ReadAsync(header.AsMemory(0, 8));
+        var header = new byte[12];
+        var bytesRead = await stream.ReadAsync(header.AsMemory(0, header.Length));
 
         if (bytesRead < 3) return false;
 
@@ -118,7 +125,9 @@ public class FileStorageService : IFileStorageService
         {
             ".jpg" or ".jpeg" => header[0] == JpegSignature[0] && header[1] == JpegSignature[1] && header[2] == JpegSignature[2],
             ".png" => bytesRead >= 8 && header.AsSpan(0, 8).SequenceEqual(PngSignature),
-            ".webp" => bytesRead >= 4 && header.AsSpan(0, 4).SequenceEqual(WebpSignature),
+            ".webp" => bytesRead >= 12 &&
+                       header.AsSpan(0, 4).SequenceEqual(WebpRiffSignature) &&
+                       header.AsSpan(8, 4).SequenceEqual(WebpSignature),
             _ => false
         };
     }

@@ -28,7 +28,8 @@ public class RegistrationsController : Controller
     public async Task<IActionResult> Index([FromQuery] RegistrationFilterDto filter, CancellationToken cancellationToken)
     {
         filter.PageSize = 20;
-        if (filter.Page < 1) filter.Page = 1;
+        if (filter.Page < 1)
+            filter.Page = 1;
 
         var result = await _registrationService.GetPagedAsync(filter, cancellationToken);
         var model = new RegistrationListViewModel
@@ -36,6 +37,7 @@ public class RegistrationsController : Controller
             PagedResult = result,
             Filter = filter
         };
+
         return View(model);
     }
 
@@ -54,6 +56,7 @@ public class RegistrationsController : Controller
             NewStatus = registration.Status,
             AdminNotes = registration.AdminNotes
         };
+
         return View(model);
     }
 
@@ -85,30 +88,28 @@ public class RegistrationsController : Controller
     }
 
     /// <summary>
-    /// Serves receipt images securely by registration ID — no path exposure.
+    /// Serves receipt images securely by registration ID without exposing file paths.
     /// </summary>
+    [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
     public async Task<IActionResult> ViewReceipt(int id, CancellationToken cancellationToken)
     {
-        var registration = await _registrationService.GetByIdAsync(id, cancellationToken);
-        if (registration is null)
+        var receiptPath = await _registrationService.GetReceiptPathByIdAsync(id, cancellationToken);
+        if (string.IsNullOrEmpty(receiptPath))
         {
-            _logger.LogWarning("Receipt view for non-existent registration {Id} by admin {Admin}",
-                id, User.Identity?.Name);
+            _logger.LogWarning(
+                "Receipt view for non-existent registration {Id} by admin {Admin}",
+                id,
+                User.Identity?.Name);
             return NotFound();
         }
 
-        if (string.IsNullOrEmpty(registration.ReceiptImagePath))
-        {
-            _logger.LogWarning("No receipt file for registration {Id}", id);
-            return NotFound();
-        }
-
-        var fullPath = _fileStorageService.GetFullPath(registration.ReceiptImagePath);
-
+        var fullPath = _fileStorageService.GetFullPath(receiptPath);
         if (!System.IO.File.Exists(fullPath))
         {
-            _logger.LogWarning("Receipt file missing on disk for registration {Id}, admin {Admin}",
-                id, User.Identity?.Name);
+            _logger.LogWarning(
+                "Receipt file missing on disk for registration {Id}, admin {Admin}",
+                id,
+                User.Identity?.Name);
             return NotFound();
         }
 

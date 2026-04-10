@@ -14,7 +14,7 @@ public class HomeController : Controller
     /// </summary>
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
     [Route("Home/StatusCode")]
-    public new IActionResult StatusCode(int code)
+    public new IActionResult StatusCode(int code = StatusCodes.Status500InternalServerError)
     {
         Response.StatusCode = code;
 
