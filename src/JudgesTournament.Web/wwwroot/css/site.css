@@ -323,45 +323,67 @@ body {
 
 /* ====== Footer ====== */
 .site-footer {
+    background:
+        radial-gradient(circle at top, rgba(201, 168, 76, 0.08), transparent 38%),
+        linear-gradient(180deg, #101710 0%, #0c110c 100%);
     border-top: 1px solid rgba(255, 255, 255, 0.06);
+    padding: 2.75rem 0 2rem;
 }
 
-.footer-meta {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.35rem;
+.footer-signoff {
+    max-width: 640px;
+    padding: 1.25rem 1.5rem;
+    border-radius: 18px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background-color: rgba(255, 255, 255, 0.03);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
 }
 
-.footer-copyright,
+.footer-copyright {
+    color: #b8c0c8;
+    font-size: 0.92rem;
+    letter-spacing: 0.01em;
+    line-height: 1.8;
+}
+
 .footer-developer-text {
-    line-height: 1.7;
-}
-
-.footer-developer {
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    color: #9ea7b1;
+    font-size: 0.95rem;
+    line-height: 1.9;
 }
 
 .footer-developer-inline {
     display: inline-flex;
     align-items: center;
-    gap: 0.55rem;
-    margin-inline-start: 0.35rem;
+    gap: 0.6rem;
+    margin-inline-start: 0.45rem;
     flex-wrap: wrap;
+    vertical-align: middle;
+}
+
+.footer-developer-name {
+    color: #f5f7fa;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+}
+
+.footer-developer-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    direction: ltr;
 }
 
 .footer-developer-icon-link {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 1.9rem;
-    height: 1.9rem;
+    width: 2rem;
+    height: 2rem;
     border-radius: 50%;
     color: #c4ccd4;
     border: 1px solid rgba(156, 163, 175, 0.2);
-    background-color: rgba(255, 255, 255, 0.03);
+    background-color: rgba(255, 255, 255, 0.04);
     text-decoration: none;
     transition: color 0.2s ease, border-color 0.2s ease, background-color 0.2s ease, transform 0.2s ease;
 }
@@ -405,9 +427,22 @@ body {
         font-size: 1.7rem;
     }
 
+    .site-footer {
+        padding: 2.25rem 0 1.75rem;
+    }
+
+    .footer-signoff {
+        padding: 1.1rem 1rem;
+        border-radius: 16px;
+    }
+
     .footer-developer-inline {
         margin-inline-start: 0;
         justify-content: center;
+    }
+
+    .footer-developer-text {
+        font-size: 0.9rem;
     }
 }
 
